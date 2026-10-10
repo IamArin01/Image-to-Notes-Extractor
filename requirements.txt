@@ -1,3 +1,7 @@
+# Gemma API client
 google-genai>=2.28.0
-pyperclip
+
+# Load GEMINI_API_KEY from the project .env file
 python-dotenv>=1.0.0
+
+pyperclip

@@ -1,52 +1,64 @@
+import argparse
 import sys
+from pathlib import Path
+
 try:
     import gemma_client
 except ImportError:
-    sys.exit("❌ Could not import 'gemma_client'. Make sure you run this script from the root of the repo folder.")
+    sys.exit(
+        "Could not import gemma_client. Run this script from the project folder "
+        "with the project virtual environment."
+    )
 
-def main():
-    print("=" * 60)
-    print("🚀 Gemma 4 Terminal Chat Interface")
-    print("Type your message and press Enter. Type 'exit' or 'quit' to end.")
-    print("=" * 60)
 
-    # Optional system/context instructions if supported by your repo's client
-    system_prompt = "You are a helpful and concise AI assistant."
+OCR_PROMPT = (
+    "Transcribe all readable text in this image. Preserve the original language, "
+    "spelling, punctuation, and paragraph breaks. Do not translate, summarize, "
+    "or add commentary. Mark text you cannot read as [illegible]. Return only "
+    "the transcription."
+)
 
-    while True:
-        try:
-            user_input = input("\n👤 You: ").strip()
 
-            if not user_input:
-                continue
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Extract and transcribe text from an image with Gemma 4."
+    )
+    parser.add_argument(
+        "image",
+        nargs="?",
+        help="path to an image file (prompted for if omitted)",
+    )
+    args = parser.parse_args(argv)
 
-            if user_input.lower() in ["exit", "quit"]:
-                print("\nExiting session. Goodbye!")
-                break
+    try:
+        image_name = args.image
+        if not image_name:
+            image_name = input("Image path (or q to quit): ").strip().strip("\"'")
+        if not image_name or image_name.lower() in {"q", "quit", "exit"}:
+            print("No image selected.")
+            return 0
 
-            print("\n🤖 Gemma:", end=" ", flush=True)
+        image_path = Path(image_name).expanduser()
+        if not image_path.is_file():
+            print(f"Image file not found: {image_path}")
+            return 2
 
-            # Check available functions in gemma_client module
-            if hasattr(gemma_client, "ask"):
-                response = gemma_client.ask(user_input)
-                print(response)
-            elif hasattr(gemma_client, "generate"):
-                response = gemma_client.generate(user_input)
-                print(response)
-            elif hasattr(gemma_client, "chat"):
-                response = gemma_client.chat(user_input)
-                print(response)
-            else:
-                # Direct fallback to standard client usage
-                print("\n[Calling gemma_client...]")
-                response = gemma_client.ask_with_image(None, user_input) if hasattr(gemma_client, "ask_with_image") else "No recognized query method in gemma_client."
-                print(response)
+        print(f"Extracting text from {image_path.name} with Gemma 4...")
+        text = gemma_client.ask_with_image(
+            image_path,
+            OCR_PROMPT,
+            system="You are an accurate OCR assistant. Follow the transcription instructions exactly.",
+        )
+        print("\nExtracted text:\n")
+        print(text)
+        return 0
+    except (EOFError, KeyboardInterrupt):
+        print("\nExtraction cancelled.")
+        return 130
+    except Exception as error:
+        print(f"\nCould not extract text: {gemma_client.describe_error(error)}")
+        return 1
 
-        except KeyboardInterrupt:
-            print("\n\nSession interrupted. Goodbye!")
-            sys.exit(0)
-        except Exception as e:
-            print(f"\n❌ Error: {e}")
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

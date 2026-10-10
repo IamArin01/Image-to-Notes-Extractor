@@ -1,6 +1,6 @@
 # Image to Notes Extractor
 
-This project is a lightweight starter for using Google Gemini's Gemma 4 model in Python to build an image-to-notes workflow. It includes a shared `gemma_client.py` helper, a simple terminal chat runner, and a sample image for experimentation.
+This project extracts and transcribes text from an image using Google Gemini's Gemma 4 model in Python. It includes a shared `gemma_client.py` helper and a sample image for experimentation.
 
 ## Model
 
@@ -14,12 +14,12 @@ This project is a lightweight starter for using Google Gemini's Gemma 4 model in
 - API key validation and safe retry handling
 - Optional caching for repeated prompts
 - Sample image included for testing image-based workflows
-- Minimal terminal interface for quick experimentation
+- Command-line image transcription, with an interactive path prompt when no image is specified
 
 ## Project structure
 
 - `gemma_client.py` — shared helper for calling the Gemma model
-- `image_to_notes.py` — terminal interface for interacting with the model
+- `image_to_notes.py` — extracts text from an image supplied as a command-line argument or interactive prompt
 - `requirements.txt` — Python dependencies
 - `Text_entropy.png` — sample input image
 - `.env` — local environment variables (not committed)
@@ -39,7 +39,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-3. Create a local `.env` file with your Gemini API key:
+3. Create or edit a `.env` file in the project root with your Gemini API key:
 
 ```env
 GEMINI_API_KEY=your_api_key_here
@@ -55,14 +55,16 @@ Important:
 From the project root:
 
 ```powershell
+python image_to_notes.py .\Text_entropy.png
+```
+
+To enter the image path interactively instead, run:
+
+```powershell
 python image_to_notes.py
 ```
 
-You can also try the sample image or a custom image path in a workflow that uses the model helper:
-
-```powershell
-python image_to_notes.py .\Text_entropy.png
-```
+The image is uploaded to Google's Gemini API for transcription. The script makes one Gemma generation request per run.
 
 ## Screenshot
 

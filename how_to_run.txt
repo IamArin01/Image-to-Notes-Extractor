@@ -1,6 +1,13 @@
 python -m venv .venv
-.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-Copy-Item .env.example .env
 
+# Create or edit .env and add your Google AI Studio key:
+# GEMINI_API_KEY=your_actual_key
+# GEMMA_MODEL=gemma-4-26b-a4b-it
+
+# Extract text from the sample image:
 python image_to_notes.py .\Text_entropy.png
+
+# Or run without an argument to enter an image path when prompted:
+python image_to_notes.py

@@ -68,8 +68,9 @@ def get_client():
         key = os.environ.get("GEMINI_API_KEY", "").strip().strip("\"'")
         if not key or key == "paste-your-key-here":
             raise MissingKeyError(
-                "No API key found. Fix: copy .env.example to .env, open .env, and put your "
-                "key after GEMINI_API_KEY=. Get a free key at https://aistudio.google.com"
+                "No API key found. Open or create the .env file in the project folder, add "
+                "GEMINI_API_KEY=your_api_key_here, and replace the placeholder with your key. "
+                "Get a key at https://aistudio.google.com"
             )
         from google import genai
 
