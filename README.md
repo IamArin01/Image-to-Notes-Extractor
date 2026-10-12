@@ -58,13 +58,25 @@ From the project root:
 python image_to_notes.py .\Text_entropy.png
 ```
 
+The transcription is saved as `Text_entropy_notes.txt` beside the image. Open it in Notepad with:
+
+```powershell
+notepad .\Text_entropy_notes.txt
+```
+
+Choose a different output file with `-o` or `--output`:
+
+```powershell
+python image_to_notes.py .\Text_entropy.png --output .\notes\transcription.txt
+```
+
 To enter the image path interactively instead, run:
 
 ```powershell
 python image_to_notes.py
 ```
 
-The image is uploaded to Google's Gemini API for transcription. The script makes one Gemma generation request per run.
+The image is uploaded to Google's Gemini API for transcription. The script makes one Gemma generation request per run and saves the text response as a UTF-8 `.txt` file.
 
 ## Screenshot
 
@@ -74,4 +86,5 @@ The image is uploaded to Google's Gemini API for transcription. The script makes
 
 - The project uses the `google-genai` package from `requirements.txt`.
 - The client helper reads `.env` automatically when `python-dotenv` is available.
+- Separately from the `.txt` transcription output, cached prompts and responses are saved as UTF-8 JSON text in `.cache/responses.txt` to avoid repeating API calls. The cache can be opened with `notepad .cache\responses.txt`; `.cache/` is ignored by Git because it may contain private prompts and extracted text.
 - The model and behavior are easy to tune in `gemma_client.py` via environment variables such as `GEMMA_MODEL`, `GEMMA_CACHE`, and `MIN_SECONDS_BETWEEN_CALLS`.

@@ -28,6 +28,11 @@ def main(argv=None):
         nargs="?",
         help="path to an image file (prompted for if omitted)",
     )
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="path for the extracted .txt file (defaults to <image-name>_notes.txt)",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -42,6 +47,14 @@ def main(argv=None):
         if not image_path.is_file():
             print(f"Image file not found: {image_path}")
             return 2
+        output_path = (
+            Path(args.output).expanduser()
+            if args.output
+            else image_path.with_name(f"{image_path.stem}_notes.txt")
+        )
+        if output_path.resolve() == image_path.resolve():
+            print("Output file must not be the same as the input image.")
+            return 2
 
         print(f"Extracting text from {image_path.name} with Gemma 4...")
         text = gemma_client.ask_with_image(
@@ -49,8 +62,16 @@ def main(argv=None):
             OCR_PROMPT,
             system="You are an accurate OCR assistant. Follow the transcription instructions exactly.",
         )
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(text.rstrip() + "\n", encoding="utf-8")
+        except OSError as error:
+            print(f"\nCould not save the transcription: {error}")
+            return 1
+
         print("\nExtracted text:\n")
         print(text)
+        print(f"\nSaved transcription to: {output_path}")
         return 0
     except (EOFError, KeyboardInterrupt):
         print("\nExtraction cancelled.")

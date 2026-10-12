@@ -52,6 +52,7 @@ SOFT_LIMIT = int(_number("GEMMA_SOFT_LIMIT", 1000))
 USE_CACHE = os.environ.get("GEMMA_CACHE", "1") != "0"
 RETRY_WAITS = (10, 20, 40)  # seconds to wait before retry 1, 2 and 3
 CACHE_DIR = ROOT / ".cache"
+CACHE_PATH = CACHE_DIR / "responses.txt"
 
 _client = None
 _last_call_time = 0.0
@@ -139,20 +140,61 @@ def _cache_key(*parts):
 def _cache_get(key):
     if not USE_CACHE:
         return None
+
     try:
-        return json.loads((CACHE_DIR / f"{key}.json").read_text())["text"]
-    except (OSError, ValueError, KeyError):
+        entries = json.loads(CACHE_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        entries = {}
+    except (OSError, ValueError) as error:
+        logging.warning("Could not read the Gemma text cache at %s: %s", CACHE_PATH, error)
+        entries = {}
+
+    if isinstance(entries, dict) and key in entries:
+        entry = entries[key]
+        if isinstance(entry, dict) and isinstance(entry.get("text"), str):
+            return entry["text"]
+
+    # Read old per-response JSON files so existing cached answers remain usable.
+    try:
+        legacy_entry = json.loads((CACHE_DIR / f"{key}.json").read_text(encoding="utf-8"))
+        text = legacy_entry["text"]
+    except FileNotFoundError:
+        return None
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        logging.warning("Could not read a legacy Gemma cache entry: %s", error)
         return None
 
+    if isinstance(text, str):
+        _cache_put(key, text)
+        return text
+    return None
 
-def _cache_put(key, text):
+
+def _cache_put(key, text, prompt=None, system=None):
     if not USE_CACHE:
         return
+
+    try:
+        entries = json.loads(CACHE_PATH.read_text(encoding="utf-8"))
+        if not isinstance(entries, dict):
+            raise ValueError("cache root must be a JSON object")
+    except FileNotFoundError:
+        entries = {}
+    except (OSError, ValueError) as error:
+        logging.warning("Could not read the Gemma text cache at %s: %s", CACHE_PATH, error)
+        entries = {}
+
+    entries[key] = {"prompt": prompt, "system": system, "text": text}
     try:
         CACHE_DIR.mkdir(exist_ok=True)
-        (CACHE_DIR / f"{key}.json").write_text(json.dumps({"text": text}))
-    except OSError:
-        pass
+        temporary_path = CACHE_PATH.with_suffix(".tmp")
+        temporary_path.write_text(
+            json.dumps(entries, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        temporary_path.replace(CACHE_PATH)
+    except OSError as error:
+        logging.warning("Could not write the Gemma text cache at %s: %s", CACHE_PATH, error)
 
 
 # ---------- calling the API safely ----------
@@ -216,7 +258,7 @@ def ask(prompt, system=None, thinking=False):
     response = generate_raw(prompt, _make_config(system, thinking))
     text = _text(response)
     if response.text:
-        _cache_put(key, text)
+        _cache_put(key, text, prompt=prompt, system=system)
     return text
 
 
@@ -238,7 +280,7 @@ def ask_with_image(image_path, prompt, system=None):
     response = _call_api(upload_and_ask)
     text = _text(response)
     if response.text:
-        _cache_put(key, text)
+        _cache_put(key, text, prompt=prompt, system=system)
     return text
 
 
